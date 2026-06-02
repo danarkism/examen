@@ -1,1 +1,515 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Poké-Examen: Psicología Deportiva</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Press Start 2P', cursive;
+            background-color: #2c3e50;
+            color: #333;
+            user-select: none;
+        }
+        .retro-container {
+            background-color: #f8f8f8;
+            border: 4px solid #333;
+            border-radius: 8px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            overflow: hidden;
+            position: relative;
+        }
+        .battle-bg {
+            background: linear-gradient(to bottom, #a8e6cf 0%, #dcedc1 100%);
+            border-bottom: 4px solid #333;
+        }
+        .dialog-box {
+            background-color: #fff;
+            border: 4px solid #333;
+            border-radius: 8px;
+        }
+        .hp-bar-container {
+            border: 2px solid #333;
+            background-color: #ddd;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .hp-bar {
+            height: 10px;
+            background-color: #4ade80; /* Green */
+            transition: width 0.3s ease, background-color 0.3s ease;
+        }
+        .hp-low { background-color: #facc15; } /* Yellow */
+        .hp-critical { background-color: #f87171; } /* Red */
+        
+        .btn-attack {
+            background-color: #fff;
+            border: 2px solid #333;
+            border-radius: 4px;
+            transition: all 0.1s;
+        }
+        .btn-attack:hover {
+            background-color: #eee;
+            transform: scale(0.98);
+        }
+        .btn-attack:active {
+            background-color: #ddd;
+        }
 
+        /* Animations */
+        @keyframes shake {
+            0% { transform: translate(1px, 1px) rotate(0deg); }
+            10% { transform: translate(-1px, -2px) rotate(-1deg); }
+            20% { transform: translate(-3px, 0px) rotate(1deg); }
+            30% { transform: translate(3px, 2px) rotate(0deg); }
+            40% { transform: translate(1px, -1px) rotate(1deg); }
+            50% { transform: translate(-1px, 2px) rotate(-1deg); }
+            60% { transform: translate(-3px, 1px) rotate(0deg); }
+            70% { transform: translate(3px, 1px) rotate(-1deg); }
+            80% { transform: translate(-1px, -1px) rotate(1deg); }
+            90% { transform: translate(1px, 2px) rotate(0deg); }
+            100% { transform: translate(1px, -2px) rotate(-1deg); }
+        }
+        .shake { animation: shake 0.5s; }
+        
+        @keyframes blink {
+            0% { opacity: 1; filter: brightness(1); }
+            50% { opacity: 0.5; filter: brightness(10) hue-rotate(300deg); }
+            100% { opacity: 1; filter: brightness(1); }
+        }
+        .damage-flash { animation: blink 0.3s 2; }
+
+        .sprite { image-rendering: pixelated; }
+        
+        .text-shadow { text-shadow: 2px 2px 0px #ddd; }
+    </style>
+</head>
+<body class="h-screen flex items-center justify-center p-4">
+
+    <!-- Main Game Container -->
+    <div id="game-container" class="retro-container w-full max-w-4xl aspect-[4/3] flex flex-col bg-white">
+        
+        <!-- Start Screen -->
+        <div id="screen-start" class="flex-1 flex flex-col items-center justify-center p-8 text-center bg-blue-100 h-full">
+            <h1 class="text-3xl md:text-5xl mb-6 text-blue-800 text-shadow leading-snug">POKÉ-EXAMEN<br><span class="text-xl md:text-2xl text-blue-600">Psicología Deportiva</span></h1>
+            <p class="text-xs md:text-sm mb-8 max-w-lg leading-relaxed">¡Prepárate! Tienes que derrotar a 74 enemigos respondiendo preguntas sobre Motivación, Autoconfianza, Visualización y Burnout.</p>
+            <button onclick="startGame()" class="px-6 py-4 bg-red-500 text-white border-4 border-red-700 hover:bg-red-600 rounded shadow-[4px_4px_0px_#8b0000] active:translate-y-1 active:shadow-none text-sm md:text-base">
+                ¡EMPEZAR COMBATE!
+            </button>
+        </div>
+
+        <!-- Battle Screen -->
+        <div id="screen-battle" class="hidden flex-1 flex flex-col h-full">
+            
+            <!-- Battle Scene (Top 60%) -->
+            <div class="battle-bg flex-1 relative p-4 flex flex-col justify-between">
+                
+                <!-- Enemy Stats & Sprite -->
+                <div class="flex justify-between items-start">
+                    <!-- Enemy HUD -->
+                    <div class="dialog-box p-3 w-1/2 md:w-5/12 shadow-md">
+                        <div class="flex justify-between items-center mb-2">
+                            <h2 id="enemy-name" class="text-[10px] md:text-xs uppercase">Tema Salvaje</h2>
+                            <span id="enemy-lvl" class="text-[10px] md:text-xs">Lv??</span>
+                        </div>
+                        <div class="hp-bar-container">
+                            <div id="enemy-hp" class="hp-bar" style="width: 100%;"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- Enemy Sprite -->
+                    <div id="enemy-sprite-container" class="w-24 h-24 md:w-32 md:h-32 mt-4 mr-4 md:mr-12 relative">
+                        <svg id="enemy-svg" viewBox="0 0 100 100" class="w-full h-full drop-shadow-xl sprite">
+                            <!-- SVG Content dynamically injected -->
+                        </svg>
+                    </div>
+                </div>
+
+                <!-- Player Stats & Sprite -->
+                <div class="flex justify-between items-end mt-8">
+                    <!-- Player Sprite -->
+                    <div id="player-sprite-container" class="w-24 h-24 md:w-32 md:h-32 mb-4 ml-4 md:ml-12 relative">
+                        <svg viewBox="0 0 100 100" class="w-full h-full drop-shadow-xl sprite">
+                            <!-- Backwards Trainer SVG -->
+                            <rect x="35" y="40" width="30" height="40" fill="#3b82f6" /> <!-- Body -->
+                            <rect x="40" y="20" width="20" height="20" fill="#fca5a5" /> <!-- Head -->
+                            <rect x="35" y="15" width="30" height="10" fill="#ef4444" /> <!-- Hat -->
+                            <rect x="35" y="25" width="5" height="15" fill="#1f2937" /> <!-- Hair -->
+                            <rect x="60" y="25" width="5" height="15" fill="#1f2937" /> <!-- Hair -->
+                            <rect x="25" y="40" width="10" height="30" fill="#3b82f6" /> <!-- Arm L -->
+                            <rect x="65" y="40" width="10" height="30" fill="#3b82f6" /> <!-- Arm R -->
+                            <rect x="35" y="80" width="12" height="20" fill="#1e3a8a" /> <!-- Leg L -->
+                            <rect x="53" y="80" width="12" height="20" fill="#1e3a8a" /> <!-- Leg R -->
+                        </svg>
+                    </div>
+
+                    <!-- Player HUD -->
+                    <div class="dialog-box p-3 w-1/2 md:w-5/12 shadow-md">
+                        <div class="flex justify-between items-center mb-2">
+                            <h2 class="text-[10px] md:text-xs">ESTUDIANTE</h2>
+                            <span class="text-[10px] md:text-xs">Lv99</span>
+                        </div>
+                        <div class="hp-bar-container mb-1">
+                            <div id="player-hp" class="hp-bar" style="width: 100%;"></div>
+                        </div>
+                        <div class="text-right text-[8px] md:text-[10px]" id="player-hp-text">100/100</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- UI/Controls (Bottom 40%) -->
+            <div class="h-2/5 md:h-1/3 bg-gray-800 p-2 md:p-4 flex gap-2">
+                <!-- Text Box -->
+                <div id="text-box-container" class="dialog-box flex-1 p-4 cursor-pointer relative" onclick="completeTypewriter()">
+                    <p id="dialog-text" class="text-[10px] md:text-[12px] leading-relaxed whitespace-pre-wrap"></p>
+                    <div id="next-indicator" class="hidden absolute bottom-2 right-4 animate-bounce text-xs">▼</div>
+                </div>
+
+                <!-- Action Menu -->
+                <div id="action-menu" class="hidden w-1/2 grid grid-cols-1 md:grid-cols-2 gap-2">
+                    <button onclick="attack(0)" class="btn-attack p-2 text-[8px] md:text-[10px] text-left break-words" id="btn-0"></button>
+                    <button onclick="attack(1)" class="btn-attack p-2 text-[8px] md:text-[10px] text-left break-words" id="btn-1"></button>
+                    <button onclick="attack(2)" class="btn-attack p-2 text-[8px] md:text-[10px] text-left break-words" id="btn-2"></button>
+                    <button onclick="attack(3)" class="btn-attack p-2 text-[8px] md:text-[10px] text-left break-words" id="btn-3"></button>
+                </div>
+            </div>
+        </div>
+
+        <!-- End Screen -->
+        <div id="screen-end" class="hidden flex-1 flex flex-col items-center justify-center p-8 text-center bg-gray-900 text-white h-full">
+            <h1 id="end-title" class="text-3xl md:text-5xl mb-6 text-yellow-400 leading-snug"></h1>
+            <p id="end-desc" class="text-xs md:text-sm mb-8 max-w-lg leading-relaxed"></p>
+            <button onclick="location.reload()" class="px-6 py-4 bg-white text-black border-4 border-gray-400 hover:bg-gray-200 rounded text-sm md:text-base">
+                JUGAR DE NUEVO
+            </button>
+        </div>
+
+    </div>
+
+    <script>
+        // --- 74 QUESTIONS DATA based on "Final de deporte.pdf" ---
+        const db = [
+            // MOTIVACIÓN
+            { q: "Definición de motivación según Sage (1997):", o: ["Dirección e intensidad del esfuerzo", "Fuerza para ganar medallas", "Estado de ánimo alterado", "Concentración en la meta"], a: 0, theme: "Motivación" },
+            { q: "¿Cuáles son los componentes de la motivación?", o: ["Amor y odio", "Dirección e intensidad", "Rasgos y emociones", "Esfuerzo y talento"], a: 1, theme: "Motivación" },
+            { q: "En la motivación, la disposición del individuo hacia una situación (si se aproxima o se aleja) se llama:", o: ["Intensidad", "Dirección", "Competitividad", "Atribución"], a: 1, theme: "Motivación" },
+            { q: "El enfoque centrado en los rasgos de la personalidad sostiene que:", o: ["La situación es lo más importante", "Personalidad, necesidades y metas determinan la conducta", "La cultura define el éxito", "Depende del entrenador"], a: 1, theme: "Motivación" },
+            { q: "¿Qué enfoque motivacional es el más respaldado por los psicólogos deportivos?", o: ["Centrado en la situación", "Centrado en el rasgo", "Interacción participante-situación", "Enfoque biomédico"], a: 2, theme: "Motivación" },
+            { q: "Un nadador orientado a la aprobación rinde mejor en:", o: ["Relevos (equipo)", "Sola", "Entrenamiento", "Descanso"], a: 0, theme: "Motivación" },
+            { q: "Un nadador con amenaza de rechazo rinde mejor:", o: ["En relevos", "Sola (individual)", "Con público", "En gimnasio"], a: 1, theme: "Motivación" },
+            { q: "Una pauta para construir motivación es:", o: ["Ignorar las situaciones", "Solo considerar la personalidad", "Comprender los múltiples motivos de la gente", "Forzar la competencia siempre"], a: 2, theme: "Motivación" },
+            { q: "Los motivos por los que la gente hace deporte:", o: ["Son siempre únicos", "Pueden compartir y competir entre sí", "Nunca cambian", "Son puramente biológicos"], a: 1, theme: "Motivación" },
+            { q: "¿Cómo se le llama a la motivación enfocada al logro en el ámbito deportivo?", o: ["Agresividad", "Competitividad", "Ansiedad de rasgo", "Burnout"], a: 1, theme: "Motivación" },
+            { q: "Según Martens, la competitividad es buscar satisfacción con estándares de excelencia en presencia de:", o: ["Nadie", "Evaluadores", "Rivales más débiles", "Familiares"], a: 1, theme: "Motivación" },
+            { q: "La teoría de la necesidad del logro de objetivos es de:", o: ["Atkinson", "Weiner", "Bandura", "Sage"], a: 0, theme: "Motivación" },
+            { q: "Según Atkinson, todos tenemos dos motivaciones subyacentes:", o: ["Lograr éxito y evitar fracaso", "Atacar y defender", "Ganar y humillar", "Dinero y fama"], a: 0, theme: "Motivación" },
+            { q: "Quienes tienen alta motivación para lograr el éxito disfrutan:", o: ["Evitar evaluaciones", "Ponerse a prueba y metas desafiantes", "Rendirse fácil", "Competir contra novatos"], a: 1, theme: "Motivación" },
+            { q: "Quienes tienen alta motivación para evitar el fracaso suelen elegir:", o: ["Tareas moderadas", "Tareas imposibles o facilísimas", "Retos intelectuales", "Rivales de su mismo nivel"], a: 1, theme: "Motivación" },
+            { q: "La teoría de la atribución fue difundida por:", o: ["Weiner", "Atkinson", "Smith", "Silva"], a: 0, theme: "Motivación" },
+            { q: "Las categorías básicas de atribución de Weiner son:", o: ["Fuerza, velocidad, talento", "Estabilidad, causalidad, control", "Interno, mágico, social", "Rasgo, estado, interacción"], a: 1, theme: "Motivación" },
+            { q: "Atribuir una victoria al 'talento o habilidad' es un factor:", o: ["Inestable", "Estable", "Externo", "Fuera de control"], a: 1, theme: "Motivación" },
+            { q: "Atribuir un resultado a la 'suerte' es un factor:", o: ["Estable", "Inestable", "Interno", "Bajo control"], a: 1, theme: "Motivación" },
+            { q: "La orientación hacia el resultado (competitiva) se centra en:", o: ["Mejorar marcas propias", "Aprender algo nuevo", "Compararse y vencer a otros", "La técnica perfecta"], a: 2, theme: "Motivación" },
+            { q: "La orientación hacia la tarea se centra en:", o: ["Destruir al rival", "Ganar trofeos", "Mejorar en relación a resultados anteriores", "Tener más fans"], a: 2, theme: "Motivación" },
+            { q: "Los deportistas con perspectiva de entidad (soy así):", o: ["Sienten que su habilidad es fija e inmodificable", "Se enfocan en mejorar", "Aman los retos duros", "Tienen patrones adaptativos"], a: 0, theme: "Motivación" },
+            { q: "Los deportistas con perspectiva de aumento:", o: ["Creen que la habilidad mejora con esfuerzo", "Se rinden rápido", "Solo les importa el resultado", "Odian entrenar"], a: 0, theme: "Motivación" },
+            { q: "La teoría de la motivación de competencias fue creada por:", o: ["Atkinson", "Weiner", "Susan Harter", "Bandura"], a: 2, theme: "Motivación" },
+            { q: "Según Harter, los sentimientos de control y autoestima influyen en:", o: ["La altura del jugador", "Los estados afectivos y motivación", "La fuerza isométrica", "El clima social"], a: 1, theme: "Motivación" },
+            { q: "En las etapas del logro de objetivos, la 'competencia autónoma' ocurre:", o: ["Antes de los 4 años", "A los 15 años", "En adultos", "Al retirarse"], a: 0, theme: "Motivación" },
+            { q: "La etapa de comparación social ocurre alrededor de:", o: ["Los 2 años", "Los 5 años", "Los 10 años", "Los 18 años"], a: 1, theme: "Motivación" },
+            { q: "La etapa integradora de motivación enfocada al logro:", o: ["Todos llegan a ella", "Sabe cuándo competir y cuándo autorreferenciarse", "Es la más temprana", "Ignora a los demás"], a: 1, theme: "Motivación" },
+            { q: "Para mejorar la motivación, un entrenador debe minimizar:", o: ["El resultado como meta", "El esfuerzo", "Los objetivos de tarea", "La diversión"], a: 0, theme: "Motivación" },
+            { q: "Indefensión aprendida se refiere a:", o: ["Aprender tácticas", "Atribuir el fracaso a falta de habilidad fija", "No necesitar ayuda", "Motivación extrema"], a: 1, theme: "Motivación" },
+            { q: "¿Es recomendable cambiar las atribuciones de 'falta de habilidad' por 'falta de esfuerzo'?", o: ["No, es mentir", "Sí, ayuda a crear expectativas positivas", "Da igual", "Depende del deporte"], a: 1, theme: "Motivación" },
+            
+            // AUTOCONFIANZA
+            { q: "Definición de autoconfianza:", o: ["Miedo al éxito", "Creencia de poder realizar un comportamiento con éxito", "Hablar mucho de uno mismo", "Entrenar sin descanso"], a: 1, theme: "Confianza" },
+            { q: "La clasificación de Vealey divide la confianza en:", o: ["Buena y mala", "Física y mental", "Estado (inestable) y característica (estable)", "A y B"], a: 2, theme: "Confianza" },
+            { q: "La profecía de autocumplimiento indica que:", o: ["El entrenador predice el clima", "Esperar que algo pase ayuda a que ocurra", "Las lesiones son inevitables", "El talento natural basta"], a: 1, theme: "Confianza" },
+            { q: "Un beneficio de la autoconfianza es que:", o: ["Reduce el esfuerzo", "Aumenta la ansiedad", "Facilita la concentración", "Te hace ignorar al rival"], a: 2, theme: "Confianza" },
+            { q: "Demasiada confianza (sobreconfianza) debilita el rendimiento porque:", o: ["Los músculos se relajan", "El deportista no se esfuerza lo suficiente", "El árbitro sanciona", "Causa lesiones agudas"], a: 1, theme: "Confianza" },
+            { q: "El modelo de confianza deportiva de Vealey incluye:", o: ["Constructos, fuentes, consecuencias y factores", "Ataque, defensa, agilidad", "Pasado, presente y futuro", "Solo factores biológicos"], a: 0, theme: "Confianza" },
+            { q: "El modelo de confianza interactúa con ABC:", o: ["Afecto, Conducta, Conocimientos", "Agilidad, Balance, Coordinación", "Antes, Bajo, Con", "Actitud, Brío, Coraje"], a: 0, theme: "Confianza" },
+            { q: "El efecto placebo en el deporte demuestra que:", o: ["Las expectativas afectan el rendimiento", "La medicina deportiva no sirve", "Las vitaminas son clave", "El entrenamiento mental es inútil"], a: 0, theme: "Confianza" },
+            { q: "Las expectativas de los entrenadores se basan en pistas personales y:", o: ["Adivinación", "Información de rendimiento", "El signo zodiacal", "Recomendaciones de fans"], a: 1, theme: "Confianza" },
+            { q: "Si un entrenador tiene bajas expectativas de un atleta:", o: ["Le da más tiempo de juego", "Le otorga menos feedback instructivo", "Lo elogia más", "Sube el estándar de calidad"], a: 1, theme: "Confianza" },
+            { q: "La teoría de la autoeficacia fue desarrollada por:", o: ["Vealey", "Bandura", "Atkinson", "Weiner"], a: 1, theme: "Confianza" },
+            { q: "Autoeficacia es:", o: ["Confianza general en la vida", "Percepción de capacidad de realizar una tarea específica", "Saber de tácticas", "Resistencia aeróbica"], a: 1, theme: "Confianza" },
+            { q: "La fuente MÁS fiable para juicios de autoeficacia es:", o: ["Persuasión verbal", "Estados fisiológicos", "Experiencias vicarias", "Logros de actuación (éxitos previos)"], a: 3, theme: "Confianza" },
+            { q: "Las experiencias vicarias (modelos) requieren 4 pasos: Atención, Retención, Motivación y...", o: ["Motor de reproducción", "Aprobación social", "Transpiración", "Deducción"], a: 0, theme: "Confianza" },
+            { q: "Cuando un entrenador dice '¡Sigue intentando!', usa la fuente de autoeficacia:", o: ["Estado fisiológico", "Logro de actuación", "Persuasión verbal", "Experiencia imaginada"], a: 2, theme: "Confianza" },
+            { q: "Los estados emocionales como ansiedad y tristeza:", o: ["Aumentan la autoeficacia", "No afectan la autoeficacia", "Disminuyen la autoeficacia", "Depende del clima"], a: 2, theme: "Confianza" },
+            { q: "Un método para construir confianza es 'Pensar con confianza', que implica:", o: ["Diálogos internos positivos", "Ignorar errores", "Criticar al rival", "Sobreentrenar"], a: 0, theme: "Confianza" },
+            { q: "El 'mapa de metas' se recomienda que se concentre más en:", o: ["Metas de resultado", "Metas de rendimiento y proceso", "Evitar el entrenamiento", "Fama"], a: 1, theme: "Confianza" },
+            { q: "La 'Eficacia colectiva' es:", o: ["Suma de talentos individuales", "Creencia compartida del equipo en su capacidad", "Táctica defensiva", "El presupuesto del club"], a: 1, theme: "Confianza" },
+            { q: "Autoeficacia para entrenadores NO incluye confianza en:", o: ["Estrategia de juego", "Técnica", "Construcción del carácter", "Controlar el clima"], a: 3, theme: "Confianza" },
+            
+            // VISUALIZACIÓN
+            { q: "Visualización, práctica mental o ensayo simbólico se refiere a:", o: ["Dormir bien", "Ver videos de los rivales", "Crear o recrear una experiencia en la mente", "Pintar cuadros"], a: 2, theme: "Visualización" },
+            { q: "Además de lo visual, ¿qué sensaciones son críticamente importantes en la visualización?", o: ["Gustativas", "Cinestésicas (movimiento)", "Astrales", "Magnéticas"], a: 1, theme: "Visualización" },
+            { q: "¿En qué momento los deportistas visualizan con mayor frecuencia?", o: ["Durante los partidos", "Después del partido", "Antes de competencias/entrenamientos", "Solo lesionados"], a: 2, theme: "Visualización" },
+            { q: "La visualización tiene dos funciones principales:", o: ["Magia y ciencia", "Motivacional y cognitiva", "Ofensiva y defensiva", "Estado y rasgo"], a: 1, theme: "Visualización" },
+            { q: "Una visualización negativa (imaginarse fallando) durante la competencia puede:", o: ["Aumentar la confianza", "Inhibir o empeorar el desempeño", "Relajar al atleta", "No hace nada"], a: 1, theme: "Visualización" },
+            { q: "La perspectiva de visualización donde te ves a ti mismo en primera persona es:", o: ["Externa", "Interna", "Cinematográfica", "Periférica"], a: 1, theme: "Visualización" },
+            { q: "La perspectiva donde te ves como si estuvieras en una cámara o 3ra persona es:", o: ["Interna", "Externa", "Táctica", "Bioinformacional"], a: 1, theme: "Visualización" },
+            { q: "El factor que más influye en la efectividad de la visualización es:", o: ["La hora del día", "El nivel de habilidad para imaginar (realismo/control)", "El color de la ropa", "La dieta"], a: 1, theme: "Visualización" },
+            { q: "La teoría psiconeuromuscular (Carpenter) propone que visualizar crea:", o: ["Cambios de personalidad", "Impulsos neuromusculares idénticos pero menores", "Magia", "Aumento de masa muscular"], a: 1, theme: "Visualización" },
+            { q: "La teoría del aprendizaje simbólico (Sackett) dice que la visualización:", o: ["Funciona como sistema de códigos para el plan mental", "Quema calorías", "Activa el flujo sanguíneo", "Cura huesos"], a: 0, theme: "Visualización" },
+            { q: "La teoría bioinformacional (Lang) requiere proposiciones de:", o: ["Ataque y defensa", "Estímulo y respuesta", "Acción y reacción", "Pasado y futuro"], a: 1, theme: "Visualización" },
+            { q: "En el modelo triple código de Ahsen (ISM), la 'S' significa:", o: ["Simbólico", "Sensorial", "Somatic response (respuesta somática)", "Social"], a: 2, theme: "Visualización" },
+            { q: "Las claves para el uso efectivo de la visualización son:", o: ["Tiempo y espacio", "Realismo y control", "Luz y sonido", "Rapidez y fuerza"], a: 1, theme: "Visualización" },
+            { q: "El programa PETTLEP de Holmes y Collins sirve para:", o: ["Curar el burnout", "Mejorar la efectividad de la visualización", "Diseñar dietas", "Evaluar autoconfianza"], a: 1, theme: "Visualización" },
+            
+            // BURNOUT & SALUD
+            { q: "El sobreentrenamiento negativo ocurre cuando:", o: ["Se entrena poco", "Hay sobrecarga sin descanso adecuado, afectando rendimiento", "Se gana siempre", "Hay mucha motivación"], a: 1, theme: "Burnout" },
+            { q: "El estado de extralimitación es:", o: ["Permanente", "Una merma temporal del rendimiento", "Una táctica de juego", "Falta de talento"], a: 1, theme: "Burnout" },
+            { q: "El Burnout (Agotamiento) es un estado psicológico caracterizado por:", o: ["Deterioro de rendimiento físico, emocional y despersonalización", "Exceso de energía", "Demasiada motivación", "Ganas de competir más"], a: 0, theme: "Burnout" },
+            { q: "El Síndrome de fatiga crónica (en deporte) abarca:", o: ["Pérdida del disfrute por estrés excesivo", "Mejora muscular", "Atribución inestable", "Autoeficacia alta"], a: 0, theme: "Burnout" },
+            { q: "La 'Despersonalización' en el burnout significa:", o: ["Sensación de ser impersonal, sin sensibilidad hacia los demás", "Perder los documentos de identidad", "Cambiar de deporte", "Jugar en equipo"], a: 0, theme: "Burnout" },
+            { q: "El modelo de estrés cognitivo y afectivo del burnout fue propuesto por:", o: ["Coakley", "Silva", "Smith (1986)", "Bandura"], a: 2, theme: "Burnout" },
+            { q: "El paso 2 del modelo de Smith es 'Evaluación cognitiva', que significa:", o: ["El médico revisa al atleta", "Interpreta la demanda como amenaza o desafío", "Un test de inteligencia", "Ver las estadísticas"], a: 1, theme: "Burnout" },
+            { q: "El modelo unidimensional de identidad (Coakley) culpa al burnout a:", o: ["Genética", "Estrés físico", "Estructura que no permite vida fuera del deporte", "Mala dieta"], a: 2, theme: "Burnout" },
+            { q: "La 'Teoría del atrapamiento' dice que atletas sufren burnout cuando:", o: ["Se sienten obligados a participar y no tienen opciones", "Se lesionan en trampas", "Juegan defensa zonal", "Están muy motivados"], a: 0, theme: "Burnout" },
+            { q: "Un síntoma físico del sobreentrenamiento es:", o: ["Ganas de bromear", "Mayor frecuencia cardíaca en reposo", "Disminución de masa grasa", "Visión mejorada"], a: 1, theme: "Burnout" },
+            { q: "Un síntoma psicológico del síndrome de fatiga crónica es:", o: ["Sentimientos negativos y baja motivación", "Euforia", "Exceso de confianza", "Perspectiva de aumento"], a: 0, theme: "Burnout" },
+            { q: "Para medir la fatiga crónica se usa:", o: ["Termómetro", "Inventario de Fatiga Crónica de Maslach", "Cuestionario SIQ", "Cronómetro"], a: 1, theme: "Burnout" },
+            { q: "¿Quiénes sufren más burnout según algunos estudios de entrenadores?", o: ["Los autoritarios", "Los menos autoritarios y que se preocupan más", "Los que ganan siempre", "Los mayores"], a: 1, theme: "Burnout" },
+            { q: "Una forma de prevenir el burnout es:", o: ["Eliminar los descansos", "Establecer metas a corto plazo y tiempos fuera", "Entrenar el doble", "Ignorar las emociones"], a: 1, theme: "Burnout" },
+            { q: "Definición de Psicología de la Salud (Matarazzo 1980):", o: ["Solo curar locos", "Aportaciones de la psicología para mantener salud y prevenir enfermedad", "Dar masajes", "Operar pacientes"], a: 1, theme: "Salud" },
+            { q: "La psicología de la salud surgió para cubrir la necesidad de:", o: ["Alternativas al modelo biomédico limitado", "Crear hospitales psiquiátricos", "Vender fármacos", "Eliminar médicos"], a: 0, theme: "Salud" },
+            { q: "En la antigüedad (griegos), Hipócrates propuso:", o: ["Demonios causan enfermedades", "Causa natural y los 4 humores", "Virus computacionales", "El modelo biomédico"], a: 1, theme: "Salud" },
+            { q: "El cambio epidemiológico que impulsó la psicología de la salud fue pasar de:", o: ["Enf. crónicas a infecciosas", "Enf. infecciosas a crónicas (ligadas a estilos de vida)", "Brujería a ciencia", "Curación a prevención"], a: 1, theme: "Salud" },
+            { q: "Actualmente se usa el modelo de multicausalidad:", o: ["Una sola causa biológica", "Interacción agente-huésped-ambiente", "Castigo divino", "Solo genética"], a: 1, theme: "Salud" },
+            { q: "La 'Atención primaria' en psicología de la salud aborda:", o: ["Cirugías", "Promoción de salud y prevención de enfermedades", "Cuidados intensivos", "Autopsias"], a: 1, theme: "Salud" },
+            { q: "La prevención busca:", o: ["Solo curar", "Identificar y reducir factores de riesgo", "Aumentar el gasto médico", "Garantizar la ausencia biológica de enfermedad"], a: 1, theme: "Salud" },
+            { q: "La psico-oncología tiene 3 áreas:", o: ["Prevención, Intervención y Cuidados Paliativos", "Diagnóstico, radiación, quimio", "Motivación, burnout, visualización", "Pasado, presente, futuro"], a: 0, theme: "Salud" },
+            { q: "Los Cuidados Paliativos buscan:", o: ["Curar el cáncer", "Ayudar a mantener la calidad de vida y abordar duelo", "Prevenir la enfermedad", "Aumentar la masa muscular"], a: 1, theme: "Salud" }
+        ];
+
+        // Enemy SVGs based on theme
+        const enemyStyles = {
+            "Motivación": {
+                color: "#ef4444", // Red
+                svg: `<path d="M50 10 L80 40 L70 90 L30 90 L20 40 Z" fill="#ef4444" stroke="#7f1d1d" stroke-width="4"/><circle cx="35" cy="40" r="8" fill="#fff"/><circle cx="65" cy="40" r="8" fill="#fff"/><circle cx="35" cy="40" r="3" fill="#000"/><circle cx="65" cy="40" r="3" fill="#000"/><path d="M40 70 Q50 80 60 70" stroke="#fff" stroke-width="4" fill="none"/>`
+            },
+            "Confianza": {
+                color: "#eab308", // Yellow
+                svg: `<rect x="20" y="20" width="60" height="60" rx="10" fill="#eab308" stroke="#713f12" stroke-width="4"/><path d="M30 40 L45 50 L30 60" stroke="#000" stroke-width="4" fill="none"/><path d="M70 40 L55 50 L70 60" stroke="#000" stroke-width="4" fill="none"/><rect x="40" y="70" width="20" height="5" fill="#000"/>`
+            },
+            "Visualización": {
+                color: "#a855f7", // Purple
+                svg: `<circle cx="50" cy="50" r="40" fill="#a855f7" stroke="#4c1d95" stroke-width="4"/><circle cx="50" cy="40" r="15" fill="#fff"/><circle cx="50" cy="40" r="5" fill="#000"/><path d="M40 70 Q50 60 60 70" stroke="#fff" stroke-width="4" fill="none"/>`
+            },
+            "Burnout": {
+                color: "#22c55e", // Green
+                svg: `<path d="M20 80 Q50 10 80 80 Z" fill="#22c55e" stroke="#14532d" stroke-width="4"/><line x1="40" y1="50" x2="50" y2="60" stroke="#000" stroke-width="4"/><line x1="50" y1="60" x2="60" y2="50" stroke="#000" stroke-width="4"/><circle cx="50" cy="75" r="5" fill="#000"/>`
+            },
+            "Salud": {
+                color: "#3b82f6", // Blue
+                svg: `<path d="M20 50 A30 30 0 0 1 80 50 A30 30 0 0 1 20 50" fill="#3b82f6" stroke="#1e3a8a" stroke-width="4"/><rect x="45" y="30" width="10" height="40" fill="#fff"/><rect x="30" y="45" width="40" height="10" fill="#fff"/>`
+            }
+        };
+
+        const enemyNames = [
+            "Espectro", "Gólem", "Limo", "Dragón", "Bégimo", "Quimera", "Trol", "Duende"
+        ];
+
+        // Game State
+        let playerHP = 100;
+        let currentQIndex = 0;
+        let isTyping = false;
+        let currentFullText = "";
+        let currentOptions = [];
+        let correctIndexInRender = 0;
+        
+        // Shuffle array elements
+        function shuffle(array) {
+            let currentIndex = array.length,  randomIndex;
+            while (currentIndex != 0) {
+                randomIndex = Math.floor(Math.random() * currentIndex);
+                currentIndex--;
+                [array[currentIndex], array[randomIndex]] = [array[randomIndex], array[currentIndex]];
+            }
+            return array;
+        }
+
+        function startGame() {
+            document.getElementById('screen-start').classList.add('hidden');
+            document.getElementById('screen-battle').classList.remove('hidden');
+            
+            // Randomize questions for replayability, but keep exactly 74 questions
+            shuffle(db);
+            
+            playerHP = 100;
+            currentQIndex = 0;
+            updateHPUI();
+            loadQuestion();
+        }
+
+        function loadQuestion() {
+            if (currentQIndex >= db.length || playerHP <= 0) {
+                endGame();
+                return;
+            }
+
+            const qData = db[currentQIndex];
+            
+            // Setup Enemy
+            const theme = qData.theme;
+            const style = enemyStyles[theme] || enemyStyles["Motivación"];
+            document.getElementById('enemy-svg').innerHTML = style.svg;
+            
+            // Random enemy name based on theme
+            const randomName = enemyNames[Math.floor(Math.random() * enemyNames.length)];
+            document.getElementById('enemy-name').innerText = `${randomName} de ${theme}`;
+            document.getElementById('enemy-lvl').innerText = `Lv${currentQIndex + 1}`;
+            
+            // Enemy enters with full HP
+            const enemyHpBar = document.getElementById('enemy-hp');
+            enemyHpBar.style.width = '100%';
+            enemyHpBar.className = 'hp-bar';
+
+            // Prepare Options (Shuffle them to prevent A from always being correct if a=0)
+            let optionsObj = qData.o.map((opt, index) => ({ text: opt, isCorrect: index === qData.a }));
+            shuffle(optionsObj);
+            
+            currentOptions = optionsObj;
+            currentFullText = `¡Un ${randomName} de ${theme} salvaje apareció!\n\nPregunta ${currentQIndex + 1}/74:\n${qData.q}`;
+            
+            document.getElementById('action-menu').classList.add('hidden');
+            document.getElementById('next-indicator').classList.add('hidden');
+            typeWriter(currentFullText, () => {
+                showActionMenu();
+            });
+        }
+
+        let typeInterval;
+        function typeWriter(text, callback) {
+            isTyping = true;
+            const textBox = document.getElementById('dialog-text');
+            textBox.textContent = "";
+            let i = 0;
+            
+            clearInterval(typeInterval);
+            typeInterval = setInterval(() => {
+                if (i < text.length) {
+                    textBox.textContent += text.charAt(i);
+                    i++;
+                } else {
+                    clearInterval(typeInterval);
+                    isTyping = false;
+                    if(callback) callback();
+                }
+            }, 20); // Typing speed
+        }
+
+        function completeTypewriter() {
+            if (isTyping) {
+                clearInterval(typeInterval);
+                document.getElementById('dialog-text').textContent = currentFullText;
+                isTyping = false;
+                showActionMenu();
+            }
+        }
+
+        function showActionMenu() {
+            document.getElementById('action-menu').classList.remove('hidden');
+            for(let i=0; i<4; i++){
+                const btn = document.getElementById(`btn-${i}`);
+                if(currentOptions[i]) {
+                    btn.innerText = `${["A","B","C","D"][i]}) ${currentOptions[i].text}`;
+                    btn.style.display = 'block';
+                    if(currentOptions[i].isCorrect) correctIndexInRender = i;
+                } else {
+                    btn.style.display = 'none';
+                }
+            }
+        }
+
+        function attack(selectedIndex) {
+            document.getElementById('action-menu').classList.add('hidden');
+            
+            if (selectedIndex === correctIndexInRender) {
+                // Correct!
+                currentFullText = "¡Es muy efectivo! Respuesta correcta.";
+                typeWriter(currentFullText, () => {
+                    // Flash Enemy
+                    const enemySprite = document.getElementById('enemy-sprite-container');
+                    enemySprite.classList.add('damage-flash');
+                    
+                    // Deplete Enemy HP
+                    const enemyHpBar = document.getElementById('enemy-hp');
+                    enemyHpBar.style.width = '0%';
+                    
+                    setTimeout(() => {
+                        enemySprite.classList.remove('damage-flash');
+                        currentQIndex++;
+                        loadQuestion();
+                    }, 1500);
+                });
+            } else {
+                // Incorrect!
+                playerHP -= 10;
+                updateHPUI();
+                
+                currentFullText = `¡Fallaste! La respuesta era: ${currentOptions[correctIndexInRender].text}`;
+                typeWriter(currentFullText, () => {
+                    // Shake Player
+                    const playerContainer = document.getElementById('game-container');
+                    playerContainer.classList.add('shake');
+                    
+                    // Flash Player
+                    const playerSprite = document.getElementById('player-sprite-container');
+                    playerSprite.classList.add('damage-flash');
+
+                    setTimeout(() => {
+                        playerContainer.classList.remove('shake');
+                        playerSprite.classList.remove('damage-flash');
+                        if(playerHP > 0) {
+                            currentQIndex++;
+                            loadQuestion();
+                        } else {
+                            endGame();
+                        }
+                    }, 2000);
+                });
+            }
+        }
+
+        function updateHPUI() {
+            const hpBar = document.getElementById('player-hp');
+            hpBar.style.width = `${Math.max(0, playerHP)}%`;
+            document.getElementById('player-hp-text').innerText = `${Math.max(0, playerHP)}/100`;
+
+            hpBar.className = 'hp-bar'; // reset
+            if (playerHP <= 20) {
+                hpBar.classList.add('hp-critical');
+            } else if (playerHP <= 50) {
+                hpBar.classList.add('hp-low');
+            }
+        }
+
+        function endGame() {
+            document.getElementById('screen-battle').classList.add('hidden');
+            const endScreen = document.getElementById('screen-end');
+            endScreen.classList.remove('hidden');
+
+            const title = document.getElementById('end-title');
+            const desc = document.getElementById('end-desc');
+
+            if (playerHP > 0) {
+                title.innerText = "¡CAMPEÓN DE LA LIGA!";
+                title.className = "text-3xl md:text-5xl mb-6 text-yellow-400 leading-snug";
+                desc.innerText = `¡Felicidades! Derrotaste la liga de Psicología Deportiva respondiendo correctamente las preguntas. Eres un Maestro.`;
+            } else {
+                title.innerText = "FIN DEL JUEGO";
+                title.className = "text-3xl md:text-5xl mb-6 text-red-500 leading-snug";
+                desc.innerText = `¡Te quedaste sin puntos de salud en la pregunta ${currentQIndex + 1}! Estudia el documento y vuelve a intentarlo.`;
+            }
+        }
+
+    </script>
+</body>
+</html>
